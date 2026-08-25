@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>iBamen — Diagnóstico de Proyecto</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;700;900&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0e1013;
+    --bg-panel: #16191d;
+    --line: #2a2e33;
+    --cream: #ede6da;
+    --muted: #8a8f98;
+    --amber: #d98e3e;
+    --teal: #2fa6a6;
+    --danger: #c65b4a;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: var(--bg);
+    color: var(--cream);
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection{ background: var(--amber); color: #0e1013; }
+
+  /* film sprocket texture on the sides */
+  .sprockets{
+    position: fixed; top:0; bottom:0; width: 18px; z-index: 5; pointer-events:none;
+    background-image: repeating-linear-gradient(
+      to bottom, transparent 0, transparent 18px, var(--line) 18px, var(--line) 20px
+    );
+    background-size: 6px 40px;
+    background-repeat: repeat-y;
+    background-position: center;
+    opacity: .5;
+  }
+  .sprockets.left{ left:0; }
+  .sprockets.right{ right:0; }
+
+  header{
+    padding: 64px 48px 40px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .eyebrow{
+    font-family: 'IBM Plex Mono', monospace;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    font-size: 12px;
+    color: var(--teal);
+    margin-bottom: 18px;
+  }
+  h1{
+    font-family: 'Big Shoulders Display', sans-serif;
+    font-weight: 900;
+    font-size: clamp(40px, 8vw, 78px);
+    line-height: .92;
+    margin: 0 0 22px;
+    text-transform: uppercase;
+    letter-spacing: .01em;
+  }
+  h1 span{ color: var(--amber); }
+  .lede{
+    font-size: 17px;
+    line-height: 1.6;
+    color: var(--muted);
+    max-width: 560px;
+    margin: 0;
+  }
+
+  /* running timecode, acts as progress signature */
+  .timecode{
+    position: fixed;
+    top: 24px; right: 28px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: .05em;
+    z-index: 10;
+    background: rgba(14,16,19,.85);
+    padding: 6px 10px;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+  }
+  .timecode b{ color: var(--amber); font-weight: 500; }
+
+  main{
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 48px 120px;
+  }
+
+  .scene{
+    border-top: 1px solid var(--line);
+    padding: 56px 0 8px;
+  }
+  .scene:first-child{ border-top: none; }
+  .scene-head{
+    display:flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .scene-num{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--amber);
+    border: 1px solid var(--amber);
+    padding: 3px 8px;
+    border-radius: 2px;
+    letter-spacing: .05em;
+    white-space: nowrap;
+  }
+  .scene-title{
+    font-family: 'Big Shoulders Display', sans-serif;
+    font-weight: 700;
+    font-size: 26px;
+    text-transform: uppercase;
+    letter-spacing: .01em;
+    color: var(--cream);
+  }
+  .scene-hint{
+    color: var(--muted);
+    font-size: 14px;
+    margin: -14px 0 26px;
+    max-width: 540px;
+    line-height: 1.55;
+  }
+
+  .field{ margin-bottom: 26px; }
+  .field label{
+    display:block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    letter-spacing: .04em;
+    color: var(--muted);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+  .field label .req{ color: var(--danger); margin-left: 4px; }
+
+  input[type=text], input[type=email], input[type=tel], input[type=date], textarea, select{
+    width: 100%;
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    color: var(--cream);
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    padding: 13px 14px;
+    border-radius: 4px;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  textarea{ min-height: 92px; resize: vertical; line-height: 1.5; }
+  input:focus, textarea:focus, select:focus{
+    outline: none;
+    border-color: var(--teal);
+    background: #191d22;
+  }
+  input::placeholder, textarea::placeholder{ color: #565b63; }
+
+  .row2{ display:grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 640px){ .row2{ grid-template-columns: 1fr; } }
+
+  .chips{ display:flex; flex-wrap:wrap; gap: 10px; }
+  .chip{
+    border: 1px solid var(--line);
+    background: var(--bg-panel);
+    color: var(--muted);
+    padding: 10px 16px;
+    border-radius: 999px;
+    font-size: 14px;
+    cursor: pointer;
+    user-select: none;
+    transition: all .15s ease;
+  }
+  .chip:hover{ border-color: var(--teal); color: var(--cream); }
+  .chip.active{
+    background: var(--amber);
+    border-color: var(--amber);
+    color: #0e1013;
+    font-weight: 600;
+  }
+  .chip.active.teal{ background: var(--teal); border-color: var(--teal); color:#0e1013; }
+
+  .submit-wrap{
+    border-top: 1px solid var(--line);
+    padding-top: 44px;
+    margin-top: 20px;
+    display:flex;
+    align-items:center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  button#submitBtn{
+    font-family: 'IBM Plex Mono', monospace;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    font-size: 14px;
+    background: var(--amber);
+    color: #0e1013;
+    border: none;
+    padding: 16px 30px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: transform .12s ease, background .15s ease;
+  }
+  button#submitBtn:hover{ background: #e8a153; transform: translateY(-1px); }
+  button#submitBtn:disabled{ opacity: .5; cursor: default; transform:none; }
+  .submit-note{ color: var(--muted); font-size: 13px; max-width: 340px; }
+
+  .status{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    margin-top: 16px;
+    display:none;
+  }
+  .status.show{ display:block; }
+  .status.ok{ color: var(--teal); }
+  .status.err{ color: var(--danger); }
+
+  .done-screen{
+    display:none;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 140px 48px;
+    text-align:center;
+  }
+  .done-screen.show{ display:block; }
+  .done-screen h2{
+    font-family: 'Big Shoulders Display', sans-serif;
+    font-weight: 900;
+    font-size: 54px;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 18px;
+  }
+  .done-screen p{ color: var(--muted); font-size: 16px; max-width: 460px; margin: 0 auto; line-height:1.6; }
+
+  #formScreen.hide{ display:none; }
+</style>
+</head>
+<body>
+
+<div class="sprockets left"></div>
+<div class="sprockets right"></div>
+<div class="timecode">TC <b id="tcCounter">00:00:00:00</b></div>
+
+<div id="formScreen">
+<header>
+  <div class="eyebrow">iBamen · Sesión de diagnóstico</div>
+  <h1>Antes de<br>rodar,<br><span>hablemos.</span></h1>
+</header>
+
+<main>
+  <form id="diagForm">
+
+    <section class="scene">
+      <div class="scene-head">
+        <span class="scene-num">ESC. 01</span>
+        <span class="scene-title">Quién eres</span>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Nombre o marca <span class="req">*</span></label>
+          <input type="text" name="nombre" required placeholder="Tu nombre o el de tu marca">
+        </div>
+        <div class="field">
+          <label>Correo de contacto <span class="req">*</span></label>
+          <input type="email" name="correo" required placeholder="tucorreo@ejemplo.com">
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>WhatsApp / teléfono</label>
+          <input type="tel" name="telefono" placeholder="+57 300 000 0000">
+        </div>
+        <div class="field">
+          <label>¿Cómo te describes? <span class="req">*</span></label>
+          <div class="chips" data-name="tipo" data-required="true">
+            <div class="chip" data-value="Marca personal">Marca personal</div>
+            <div class="chip" data-value="Emprendimiento">Emprendimiento</div>
+            <div class="chip" data-value="Negocio establecido">Negocio establecido</div>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label>¿A qué se dedican? <span class="req">*</span></label>
+        <textarea name="dedicacion" required placeholder="Qué venden o qué hacen, en pocas líneas"></textarea>
+      </div>
+    </section>
+
+    <section class="scene">
+      <div class="scene-head">
+        <span class="scene-num">ESC. 02</span>
+        <span class="scene-title">El dolor</span>
+      </div>
+      <p class="scene-hint">Esta es la escena que más me importa. Sé tan honesto como puedas — de aquí sale toda la propuesta.</p>
+      <div class="field">
+        <label>¿Cuál es el problema principal que quieres resolver con contenido audiovisual? <span class="req">*</span></label>
+        <textarea name="dolor" required placeholder="Ej: no logramos que la gente entienda qué vendemos, o nuestras redes se ven desactualizadas frente a la competencia..."></textarea>
+      </div>
+      <div class="field">
+        <label>¿Qué has intentado antes que no funcionó o no te convenció?</label>
+        <textarea name="intentos" placeholder="Otro freelancer, agencia, contenido hecho por ti mismo, nada aún..."></textarea>
+      </div>
+    </section>
+
+    <section class="scene">
+      <div class="scene-head">
+        <span class="scene-num">ESC. 03</span>
+        <span class="scene-title">A quién le hablas</span>
+      </div>
+      <div class="field">
+        <label>¿Cómo describirías a tu cliente o audiencia ideal?</label>
+        <textarea name="audiencia" placeholder="Edad, intereses, dónde los encuentras, qué los mueve a comprar..."></textarea>
+      </div>
+      <div class="field">
+        <label>¿Qué te hace diferente frente a tu competencia?</label>
+        <textarea name="diferencial" placeholder="Lo que dirías si alguien te pregunta por qué elegirte a ti"></textarea>
+      </div>
+    </section>
+
+    <section class="scene">
+      <div class="scene-head">
+        <span class="scene-num">ESC. 04</span>
+        <span class="scene-title">El objetivo</span>
+      </div>
+      <div class="field">
+        <label>¿Qué buscas lograr con este proyecto? <span class="req">*</span></label>
+        <div class="chips" data-name="objetivo" data-required="true" data-teal="true" data-multi="true">
+          <div class="chip" data-value="Vender más">Vender más</div>
+          <div class="chip" data-value="Reconocimiento de marca">Reconocimiento de marca</div>
+          <div class="chip" data-value="Posicionamiento en redes">Posicionamiento en redes</div>
+          <div class="chip" data-value="Lanzamiento de producto">Lanzamiento de producto</div>
+          <div class="chip" data-value="Otro">Otro</div>
+        </div>
+        <p class="scene-hint" style="margin:8px 0 0;">Puedes marcar más de una.</p>
+        <div class="field" id="objetivoOtroField" style="display:none; margin-top:18px;">
+          <label>¿Cuál es ese otro objetivo? <span class="req">*</span></label>
+          <input type="text" name="objetivoOtro" placeholder="Cuéntame cuál">
+        </div>
+      </div>
+      <div class="field">
+        <label>Referencias visuales (perfiles, videos o marcas que te gusten)</label>
+        <input type="text" name="referencias" placeholder="Links o nombres separados por coma">
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Rango de presupuesto estimado</label>
+          <select name="presupuesto">
+            <option value="">Prefiero conversarlo</option>
+            <option value="Menos de $1.000.000 COP">Menos de $1.000.000 COP</option>
+            <option value="$1.000.000 – $3.000.000 COP">$1.000.000 – $3.000.000 COP</option>
+            <option value="$3.000.000 – $6.000.000 COP">$3.000.000 – $6.000.000 COP</option>
+            <option value="Más de $6.000.000 COP">Más de $6.000.000 COP</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>¿Hay una fecha límite o evento clave?</label>
+          <input type="text" name="plazo" placeholder="Ej: lanzamiento el 15 de octubre, sin fecha fija...">
+        </div>
+      </div>
+    </section>
+
+    <div class="submit-wrap">
+      <button type="submit" id="submitBtn">Enviar diagnóstico</button>
+      <p class="submit-note">Recibirás una confirmación y te contactaré personalmente para agendar la siguiente conversación.</p>
+    </div>
+    <div class="status" id="statusMsg"></div>
+  </form>
+</main>
+</div>
+
+<div class="done-screen" id="doneScreen">
+  <div class="eyebrow" style="text-align:center;">Corte — hasta aquí</div>
+  <h2>Recibido.</h2>
+  <p>Ya tengo lo que necesito para pensar tu propuesta. Te escribo pronto a través de los datos que dejaste.</p>
+</div>
+
+<script>
+  // ─── CONFIGURA AQUÍ TU URL DE GOOGLE APPS SCRIPT ───
+  const ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbzsbnChAsXXwY7oGtfDqI1WnU8940OletgdP-cDrVRTq09uXvpz6RpeD-qVsvXfqohIgA/exec";
+
+  // running timecode ticker, purely atmospheric
+  let frame = 0;
+  setInterval(() => {
+    frame++;
+    const f = frame % 24;
+    const s = Math.floor(frame / 24) % 60;
+    const m = Math.floor(frame / (24*60)) % 60;
+    const h = Math.floor(frame / (24*60*60));
+    const pad = n => String(n).padStart(2,'0');
+    document.getElementById('tcCounter').textContent = `${pad(h)}:${pad(m)}:${pad(s)}:${pad(f)}`;
+  }, 1000/24);
+
+  // chip groups act as required single-select fields
+  document.querySelectorAll('.chips').forEach(group => {
+    group.addEventListener('click', (e) => {
+      const chip = e.target.closest('.chip');
+      if(!chip) return;
+
+      if(group.dataset.multi){
+        chip.classList.toggle('active');
+        if(group.dataset.teal) chip.classList.toggle('teal', chip.classList.contains('active'));
+      } else {
+        group.querySelectorAll('.chip').forEach(c => c.classList.remove('active','teal'));
+        chip.classList.add('active');
+        if(group.dataset.teal) chip.classList.add('teal');
+      }
+
+      const selected = [...group.querySelectorAll('.chip.active')].map(c => c.dataset.value);
+      group.dataset.value = selected.join(', ');
+
+      if(group.dataset.name === 'objetivo'){
+        const otroField = document.getElementById('objetivoOtroField');
+        const otroInput = otroField.querySelector('input');
+        if(selected.includes('Otro')){
+          otroField.style.display = 'block';
+          otroInput.required = true;
+        } else {
+          otroField.style.display = 'none';
+          otroInput.required = false;
+          otroInput.value = '';
+        }
+      }
+    });
+  });
+
+  const form = document.getElementById('diagForm');
+  const statusMsg = document.getElementById('statusMsg');
+  const submitBtn = document.getElementById('submitBtn');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    // validate required chip groups
+    let valid = true;
+    document.querySelectorAll('.chips[data-required="true"]').forEach(group => {
+      if(!group.dataset.value){
+        valid = false;
+        group.style.outline = '1px solid var(--danger)';
+        group.style.borderRadius = '10px';
+      } else {
+        group.style.outline = 'none';
+      }
+    });
+    if(!form.checkValidity() || !valid){
+      form.reportValidity();
+      statusMsg.textContent = valid ? '' : 'Falta seleccionar una opción marcada con *.';
+      statusMsg.className = 'status show err';
+      return;
+    }
+
+    const data = Object.fromEntries(new FormData(form).entries());
+    document.querySelectorAll('.chips').forEach(group => {
+      data[group.dataset.name] = group.dataset.value || '';
+    });
+    data.fecha = new Date().toISOString();
+
+    if(ENDPOINT_URL.includes('PEGA_AQUI')){
+      statusMsg.textContent = 'Falta configurar la URL de Google Apps Script en el código (ver instrucciones).';
+      statusMsg.className = 'status show err';
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Enviando...';
+    statusMsg.className = 'status';
+
+    try{
+      await fetch(ENDPOINT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(data)
+      });
+      document.getElementById('formScreen').classList.add('hide');
+      document.getElementById('doneScreen').classList.add('show');
+      window.scrollTo(0,0);
+    } catch(err){
+      statusMsg.textContent = 'No se pudo enviar. Revisa tu conexión e inténtalo de nuevo.';
+      statusMsg.className = 'status show err';
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Enviar diagnóstico';
+    }
+  });
+</script>
+
+</body>
+</html>
